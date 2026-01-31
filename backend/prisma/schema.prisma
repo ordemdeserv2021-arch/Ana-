@@ -1,0 +1,278 @@
+// Prisma Schema para o Sistema Ana - Controle de Acesso
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Usuários do sistema (administradores, porteiros, etc)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(USER)
+  active    Boolean  @default(true)
+  phone     String?
+  avatar    String?
+  lastLogin DateTime?
+  
+  // Relacionamentos
+  managedCondominiums Condominium[] @relation("Manager")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("users")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  OPERATOR
+  USER
+}
+
+// Condomínios ou Estabelecimentos Comerciais
+model Condominium {
+  id      String          @id @default(cuid())
+  name    String
+  address String
+  type    CondominiumType @default(CONDOMINIUM)
+  phone   String?
+  email   String?
+  cnpj    String?
+  active  Boolean         @default(true)
+  
+  // Relacionamentos
+  managerId String?
+  manager   User?   @relation("Manager", fields: [managerId], references: [id])
+  
+  residents  Resident[]
+  devices    Device[]
+  visitors   Visitor[]
+  accessLogs AccessLog[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("condominiums")
+}
+
+enum CondominiumType {
+  CONDOMINIUM  // Condomínio residencial
+  COMMERCIAL   // Estabelecimento comercial
+  INDUSTRIAL   // Área industrial
+  MIXED        // Uso misto
+}
+
+// Moradores ou Funcionários
+model Resident {
+  id       String       @id @default(cuid())
+  name     String
+  document String       // CPF ou outro documento
+  email    String?
+  phone    String?
+  unit     String?      // Apartamento/Sala
+  block    String?      // Bloco/Torre
+  type     ResidentType @default(RESIDENT)
+  photo    String?
+  notes    String?
+  
+  // Controle de acesso
+  blocked       Boolean   @default(false)
+  blockedReason String?
+  blockedAt     DateTime?
+  
+  // Relacionamentos
+  condominiumId String
+  condominium   Condominium @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  
+  credentials Credential[]
+  accessLogs  AccessLog[]
+  visitors    Visitor[]    @relation("VisitingResident")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("residents")
+}
+
+enum ResidentType {
+  RESIDENT   // Morador
+  EMPLOYEE   // Funcionário
+  PROVIDER   // Prestador de serviço fixo
+  TENANT     // Inquilino
+}
+
+// Credenciais de acesso (cartão, biometria, etc)
+model Credential {
+  id         String         @id @default(cuid())
+  type       CredentialType
+  value      String         // Número do cartão, hash biométrico, etc
+  active     Boolean        @default(true)
+  validUntil DateTime?
+  
+  residentId String
+  resident   Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("credentials")
+}
+
+enum CredentialType {
+  CARD       // Cartão de proximidade
+  BIOMETRIC  // Biometria digital
+  FACIAL     // Reconhecimento facial
+  QR_CODE    // QR Code
+  PIN        // Senha numérica
+  APP        // Acesso via aplicativo
+}
+
+// Dispositivos Control ID
+model Device {
+  id           String       @id @default(cuid())
+  name         String
+  ip           String
+  port         Int          @default(80)
+  model        String       // iDAccess, iDBox, iDFlex, etc
+  serialNumber String?
+  location     String?      // Portaria principal, Garagem, etc
+  description  String?
+  status       DeviceStatus @default(OFFLINE)
+  active       Boolean      @default(true)
+  
+  lastSync DateTime?
+  lastPing DateTime?
+  
+  condominiumId String
+  condominium   Condominium @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  
+  accessLogs AccessLog[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("devices")
+}
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+  ERROR
+  MAINTENANCE
+}
+
+// Visitantes
+model Visitor {
+  id           String        @id @default(cuid())
+  name         String
+  document     String
+  phone        String?
+  photo        String?
+  vehicle      String?       // Descrição do veículo
+  vehiclePlate String?
+  reason       String?
+  expectedDate DateTime?
+  notes        String?
+  status       VisitorStatus @default(PENDING)
+  
+  // Check-in/Check-out
+  checkInAt   DateTime?
+  checkInBy   String?
+  checkOutAt  DateTime?
+  checkOutBy  String?
+  registeredBy String?
+  
+  // Relacionamentos
+  condominiumId      String
+  condominium        Condominium @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  
+  visitingResidentId String?
+  visitingResident   Resident? @relation("VisitingResident", fields: [visitingResidentId], references: [id])
+  
+  accessLogs AccessLog[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("visitors")
+}
+
+enum VisitorStatus {
+  PENDING   // Aguardando
+  APPROVED  // Aprovado
+  INSIDE    // Dentro do local
+  LEFT      // Saiu
+  DENIED    // Negado
+  EXPIRED   // Expirado
+}
+
+// Logs de Acesso
+model AccessLog {
+  id     String        @id @default(cuid())
+  type   AccessType
+  method AccessMethod
+  notes  String?
+  
+  grantedBy String?
+  deniedBy  String?
+  
+  // Relacionamentos
+  residentId String?
+  resident   Resident? @relation(fields: [residentId], references: [id])
+  
+  visitorId String?
+  visitor   Visitor? @relation(fields: [visitorId], references: [id])
+  
+  deviceId String?
+  device   Device? @relation(fields: [deviceId], references: [id])
+  
+  condominiumId String
+  condominium   Condominium @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@index([condominiumId, createdAt])
+  @@index([residentId, createdAt])
+  @@map("access_logs")
+}
+
+enum AccessType {
+  GRANTED  // Acesso liberado
+  DENIED   // Acesso negado
+  EXIT     // Saída
+  TIMEOUT  // Tempo esgotado
+}
+
+enum AccessMethod {
+  CARD       // Cartão
+  BIOMETRIC  // Biometria
+  FACIAL     // Facial
+  QR_CODE    // QR Code
+  PIN        // Senha
+  APP        // Aplicativo
+  MANUAL     // Liberação manual
+  REMOTE     // Liberação remota
+}
+model Invite {
+  id            String      @id @default(uuid())
+  token         String      // O código de 6 dígitos
+  email         String
+  status        String      @default("PENDING") // PENDING, USED, EXPIRED
+  expiresAt     DateTime
+  createdAt     DateTime    @default(now())
+  
+  condominiumId String
+  condominium   Condominium @relation(fields: [condominiumId], references: [id])
+
+  @@index([token])
+}
+

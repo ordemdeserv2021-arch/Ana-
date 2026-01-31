@@ -1,0 +1,7 @@
+﻿node_modules/
+.env
+.DS_Store
+dist/
+dist-electron/
+dist-web/
+logs/
