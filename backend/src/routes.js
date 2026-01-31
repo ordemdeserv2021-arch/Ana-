@@ -26,6 +26,13 @@ routes.post('/auth/refresh-token', AuthController.refreshToken);
 routes.get('/register/validate/:token', RegisterController.checkToken);
 routes.post('/register', RegisterController.register);
 
+// Endpoints públicos para mobile (iToken)
+routes.post('/invites/request', InviteController.create);
+routes.get('/invites/verify/:token', RegisterController.checkToken);
+// Upload de foto esperado no campo 'photo'
+const upload = require('./middlewares/upload');
+routes.post('/residents/register-with-token', upload.single('photo'), RegisterController.register);
+
 // --- Rotas Protegidas (Requer Login) ---
 routes.use(authMiddleware);
 

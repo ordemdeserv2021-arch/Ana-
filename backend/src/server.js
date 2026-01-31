@@ -23,6 +23,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Servir uploads estáticos
+app.use('/uploads', express.static(require('path').join(__dirname, '..', 'uploads')));
+
 // Disponibiliza io para as rotas
 app.set('io', io);
 

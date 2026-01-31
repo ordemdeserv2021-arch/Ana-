@@ -9,8 +9,19 @@ const accessRoutes = require('./access.routes');
 const deviceRoutes = require('./device.routes');
 const visitorRoutes = require('./visitor.routes');
 
+// Public/register/invite routes
+const inviteRoutes = require('./invite.routes');
+const registerRoutes = require('./register.routes');
+const dashboardRoutes = require('./dashboard.routes');
+
 // Rotas públicas
 router.use('/auth', authRoutes);
+router.use('/invites', inviteRoutes);
+// Rotas de registro público (verificação de token e cadastro com iToken)
+router.use('/', registerRoutes);
+
+// Dashboard protegido (usa authMiddleware internamente)
+router.use('/dashboard', dashboardRoutes);
 
 // Rotas protegidas
 router.use('/users', userRoutes);

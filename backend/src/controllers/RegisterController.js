@@ -28,7 +28,13 @@ class RegisterController {
    */
   async register(req, res) {
     try {
-      const { token, name, document, phone, photo, password } = req.body;
+      const { token, name, document, phone, password } = req.body;
+      // se o upload multipart foi usado, `req.file` terá a foto
+      let photo = req.body.photo;
+      if (req.file) {
+        // caminho relativo para servir estático via /uploads
+        photo = `/uploads/${req.file.filename}`;
+      }
 
       // 1. Valida o token novamente
       const invite = await InviteService.validateInvite(token);
@@ -43,7 +49,7 @@ class RegisterController {
           document,
           email: invite.email,
           phone,
-          photo, // URL ou Base64 da foto
+          photo,
           condominiumId: invite.condominiumId,
           type: 'RESIDENT',
           active: true

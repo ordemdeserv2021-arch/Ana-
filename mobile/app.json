@@ -5,7 +5,6 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -18,8 +17,10 @@
       },
       "package": "com.ana.mobile",
       "permissions": [
-        "CAMERA",
-        "INTERNET"
+        "android.permission.CAMERA",
+        "android.permission.INTERNET",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {},
@@ -37,6 +38,11 @@
           "cameraPermission": "Permitir que Ana acesse sua câmera"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "305e841c-1734-4ce3-bb8b-7658830d593e"
+      }
+    }
   }
 }

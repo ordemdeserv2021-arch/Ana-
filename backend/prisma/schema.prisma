@@ -56,6 +56,7 @@ model Condominium {
   residents  Resident[]
   devices    Device[]
   visitors   Visitor[]
+  invites    Invite[]
   accessLogs AccessLog[]
   
   createdAt DateTime @default(now())
